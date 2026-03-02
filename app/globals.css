@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+:root {
+  --bg: #f8fafc;
+  --ink: #0f172a;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+}

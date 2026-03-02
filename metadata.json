@@ -1,0 +1,5 @@
+{
+  "name": "Device Footprint Comparator",
+  "description": "Compare the physical footprint, thickness, and ports of various laptops using interactive SVG layers.",
+  "requestFramePermissions": []
+}
