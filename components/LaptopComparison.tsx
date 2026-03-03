@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Monitor, Usb, Maximize, Layers, Download, Filter } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Monitor, Usb, Maximize, Layers, Download, Filter, Terminal, X, Square } from 'lucide-react';
 
 const DATABASE = [
   { id: "t14", type: "Laptop", name: "ThinkPad T14 Gen 6", w: 315.9, d: 223.7, h: 17.7, color: "#ef4444", ports: "2x USB-C, 2x USB-A, HDMI, Audio", portIcons: ['C', 'C', 'A', 'A', 'H', 'J'] },
@@ -25,6 +25,15 @@ const DATABASE = [
 
 const DEVICE_TYPES = Array.from(new Set(DATABASE.map(d => d.type)));
 
+const PORT_NAMES: Record<string, string> = {
+  'C': 'USB-C / USB4',
+  'A': 'USB-A',
+  'H': 'HDMI',
+  'J': 'Audio Jack',
+  'M': 'MagSafe / Surface',
+  'S': 'SD Card'
+};
+
 const getPortWidth = (portType: string) => {
   switch (portType) {
     case 'C': return 8.4;
@@ -37,9 +46,12 @@ const getPortWidth = (portType: string) => {
   }
 };
 
-const renderPortIcon = (portType: string, x: number, yCenter: number, opacity: number) => {
-  const fill = `rgba(15, 23, 42, ${opacity})`; // slate-900
-  const innerFill = `rgba(255, 255, 255, ${opacity * 0.5})`;
+const renderPortIcon = (portType: string, x: number, yCenter: number, isDark: boolean) => {
+  // Ports are always drawn as "holes" (black) regardless of the theme, 
+  // except in dark mode where we might want them to be neon green if drawn on a black background.
+  // We'll use the theme's text color for the legend, and black for the actual laptop body holes.
+  const fill = isDark ? '#00ff00' : '#000000';
+  const innerFill = isDark ? '#000000' : '#ffffff';
   
   switch (portType) {
     case 'C': // USB-C
@@ -75,6 +87,17 @@ export default function LaptopComparison() {
   const [selectedIds, setSelectedIds] = useState<string[]>(["t14", "m2air", "ip15p"]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [activeTypes, setActiveTypes] = useState<string[]>([]);
+  const [isDark, setIsDark] = useState<boolean>(false); // Default to Light mode (Unix X11 vibe)
+
+  // Theme variables
+  const themeBg = isDark ? 'bg-black' : 'bg-[#a0a0a0]';
+  const panelBg = isDark ? 'bg-black' : 'bg-[#dfdfdf]';
+  const borderColor = isDark ? 'border-[#00ff00]' : 'border-black';
+  const textColor = isDark ? 'text-[#00ff00]' : 'text-black';
+  const titleBg = isDark ? 'bg-[#00ff00] text-black' : 'bg-black text-white';
+  const shadow = isDark ? 'shadow-[4px_4px_0px_0px_#00ff00]' : 'shadow-[4px_4px_0px_0px_#000000]';
+  const gridColor = isDark ? '#003300' : '#999999';
+  const mutedBg = isDark ? 'bg-[#001100]' : 'bg-[#cccccc]';
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -117,214 +140,286 @@ export default function LaptopComparison() {
     document.body.removeChild(link);
   };
 
-  return (
-    <div className="flex flex-col lg:flex-row gap-8 w-full max-w-7xl mx-auto p-4 sm:p-8 font-mono">
-      <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tighter text-slate-900 flex items-center gap-2 uppercase">
-            <Layers className="w-6 h-6 text-slate-900" strokeWidth={2.5} />
-            Device Footprint
-          </h1>
-          <p className="text-xs text-slate-500 mt-2 uppercase tracking-widest">Compare physical dimensions and ports.</p>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-900 mb-2">
-            <Filter className="w-4 h-4" /> Filters
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {DEVICE_TYPES.map(type => (
-              <button
-                key={type}
-                onClick={() => toggleType(type)}
-                className={`px-2 py-1 text-xs font-bold uppercase border-2 transition-colors ${
-                  activeTypes.includes(type) 
-                    ? 'bg-slate-900 text-white border-slate-900' 
-                    : 'bg-white text-slate-900 border-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] overflow-hidden">
-          <div className="p-3 border-b-2 border-slate-900 bg-slate-100">
-            <h2 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Select Devices</h2>
-          </div>
-          <div className="p-2 space-y-1 max-h-[500px] overflow-y-auto">
-            {filteredDatabase.map(device => {
-              const isSelected = selectedIds.includes(device.id);
-              return (
-                <label 
-                  key={device.id}
-                  className={`flex items-center gap-3 p-2 cursor-pointer transition-colors border-2 ${isSelected ? 'bg-slate-100 border-slate-900' : 'border-transparent hover:border-slate-300'}`}
-                  onMouseEnter={() => setHoveredId(device.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                >
-                  <input type="checkbox" className="sr-only" checked={isSelected} onChange={() => toggleSelection(device.id)} />
-                  <div className={`w-4 h-4 border-2 flex items-center justify-center ${isSelected ? 'border-slate-900 bg-slate-900' : 'border-slate-400'}`}>
-                    {isSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="square" strokeLinejoin="miter" d="M5 13l4 4L19 7" /></svg>}
-                  </div>
-                  <span className={`text-xs font-bold uppercase tracking-wide ${isSelected ? 'text-slate-900' : 'text-slate-600'}`}>
-                    {device.name} <span className="text-[10px] text-slate-400 ml-1">[{device.type}]</span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+  const RetroWindow = ({ title, children, action = null }: { title: string, children: React.ReactNode, action?: React.ReactNode }) => (
+    <div className={`border-2 ${borderColor} ${panelBg} ${shadow} flex flex-col mb-8`}>
+      <div className={`px-2 py-1 border-b-2 ${borderColor} ${titleBg} flex justify-between items-center`}>
+        <span className="font-bold tracking-widest text-sm uppercase">{title}</span>
+        <div className="flex gap-2 items-center">
+          {action}
+          <div className={`w-4 h-4 border-2 ${isDark ? 'border-black bg-[#00ff00]' : 'border-white bg-black text-white'} flex items-center justify-center text-[10px] font-bold cursor-pointer`}>■</div>
         </div>
       </div>
+      <div className={`p-4 ${textColor}`}>
+        {children}
+      </div>
+    </div>
+  );
 
-      <div className="flex-1 space-y-8 min-w-0">
-        {selectedDevices.length === 0 ? (
-          <div className="h-64 flex items-center justify-center bg-white border-2 border-slate-900 border-dashed">
-            <p className="text-slate-400 font-bold uppercase tracking-widest">Select at least one device</p>
-          </div>
-        ) : (
-          <>
-            <div className="bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] p-6 overflow-hidden">
-              <div className="flex items-center justify-between mb-6 border-b-2 border-slate-900 pb-4">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-widest">
-                  <Maximize className="w-5 h-5 text-slate-900" strokeWidth={2.5} />
-                  Top-Down Footprint
-                </h3>
-                <button onClick={exportSvg} className="flex items-center gap-2 text-xs font-bold text-slate-900 hover:text-white bg-white hover:bg-slate-900 border-2 border-slate-900 px-3 py-1.5 transition-colors uppercase tracking-widest">
-                  <Download className="w-4 h-4" strokeWidth={2.5} /> Export SVG
-                </button>
-              </div>
-              <div className="relative w-full aspect-[4/3] max-h-[600px] flex items-center justify-center bg-slate-50 border-2 border-slate-900 p-4 overflow-hidden">
-                <svg id="footprint-svg" viewBox={`0 0 ${maxW + 300} ${Math.max(maxD + 40, selectedDevices.length * 25 + 60)}`} className="w-full h-full" style={{ maxHeight: '100%', maxWidth: '100%' }}>
-                  <defs>
-                    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#cbd5e1" strokeWidth="0.5" strokeDasharray="2 2"/>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                  {selectedDevices.map((device, i) => {
-                    const isHovered = hoveredId === device.id;
-                    const opacity = hoveredId ? (isHovered ? 0.4 : 0.05) : 0.2;
-                    const strokeOpacity = hoveredId ? (isHovered ? 1 : 0.2) : 0.8;
-                    
-                    const xCorner = 20 + device.w;
-                    const yCorner = 20 + device.d;
-                    const labelY = 40 + i * 25;
-                    const labelX = maxW + 60;
+  return (
+    <div className={`min-h-screen font-mono transition-colors duration-300 ${themeBg} ${textColor} pb-12`}>
+      {/* Top Menu Bar */}
+      <div className={`border-b-2 px-4 py-1 flex justify-between items-center ${panelBg} ${borderColor} ${textColor}`}>
+        <div className="flex gap-6 text-sm font-bold uppercase tracking-widest">
+          <span className="cursor-pointer hover:underline">Host</span>
+          <span className="cursor-pointer hover:underline">Display</span>
+          <span className="cursor-pointer hover:underline">Config</span>
+        </div>
+        <button 
+          onClick={() => setIsDark(!isDark)} 
+          className={`px-3 py-0.5 border-2 text-xs font-bold uppercase tracking-widest transition-colors ${
+            isDark ? 'border-[#00ff00] hover:bg-[#00ff00] hover:text-black' : 'border-black hover:bg-black hover:text-white'
+          }`}
+        >
+          {isDark ? 'xsetroot -solid gray' : 'xsetroot -solid black'}
+        </button>
+      </div>
 
-                    return (
-                      <g key={device.id} className="transition-all duration-300 ease-in-out" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
-                        <rect x={20} y={20} width={device.w} height={device.d} fill={device.color} fillOpacity={opacity} rx={0} className="transition-all duration-300" />
-                        <rect x={20} y={20} width={device.w} height={device.d} fill="none" stroke={device.color} strokeWidth={isHovered ? 3 : 1.5} strokeOpacity={strokeOpacity} rx={0} className="transition-all duration-300" />
-                        
-                        {/* CAD Leader Line */}
-                        <path 
-                          d={`M ${xCorner} ${yCorner} L ${xCorner + 20} ${labelY} L ${labelX} ${labelY}`}
-                          fill="none"
-                          stroke={device.color}
-                          strokeWidth="1.5"
-                          opacity={strokeOpacity}
-                          strokeDasharray="4 2"
-                          className="transition-all duration-300"
-                        />
-                        <circle cx={xCorner} cy={yCorner} r="3" fill={device.color} opacity={strokeOpacity} className="transition-all duration-300" />
-                        
-                        {/* CAD Label */}
-                        <text 
-                          x={labelX + 5} 
-                          y={labelY + 4} 
-                          fill={device.color} 
-                          fontSize={11} 
-                          fontWeight="bold"
-                          fontFamily="monospace"
-                          opacity={strokeOpacity}
-                          className="uppercase tracking-wider transition-all duration-300"
-                        >
-                          {device.name} [{device.w}×{device.d}]
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
+      <div className="flex flex-col lg:flex-row gap-8 w-full max-w-[1600px] mx-auto p-4 sm:p-8 mt-4">
+        
+        {/* Left Sidebar */}
+        <div className="w-full lg:w-[400px] flex-shrink-0">
+          <RetroWindow title="/etc/filters.conf">
+            <div className="grid grid-cols-2 gap-2">
+              {DEVICE_TYPES.map(type => {
+                const isActive = activeTypes.includes(type);
+                return (
+                  <button
+                    key={type}
+                    onClick={() => toggleType(type)}
+                    className={`px-2 py-1.5 text-xs font-bold uppercase border-2 transition-colors ${
+                      isActive 
+                        ? (isDark ? 'bg-[#00ff00] text-black border-[#00ff00]' : 'bg-black text-white border-black')
+                        : `bg-transparent ${borderColor} hover:${mutedBg}`
+                    }`}
+                  >
+                    {type}
+                  </button>
+                );
+              })}
             </div>
+          </RetroWindow>
 
-            <div className="bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] p-6 overflow-hidden mt-8">
-              <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2 uppercase tracking-widest border-b-2 border-slate-900 pb-4">
-                <Monitor className="w-5 h-5 text-slate-900" strokeWidth={2.5} />
-                Thickness & Ports
-              </h3>
-              <div className="relative w-full overflow-x-auto bg-slate-50 border-2 border-slate-900 p-6">
-                <svg viewBox={`0 0 500 ${totalThicknessHeight}`} className="w-full min-w-[400px] h-auto">
-                  {selectedDevices.map((device, i) => {
-                    const yPos = 20 + i * thicknessSpacing;
-                    const isHovered = hoveredId === device.id;
-                    const opacity = hoveredId ? (isHovered ? 1 : 0.3) : 0.85;
-                    return (
-                      <g key={`thick-${device.id}`} className="transition-all duration-300 cursor-pointer" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
-                        <text x={0} y={yPos + device.h / 2} dominantBaseline="middle" fill={isHovered ? device.color : "#475569"} fontSize={11} fontWeight="bold" fontFamily="monospace" className="uppercase tracking-wider transition-colors duration-300">
-                          {device.name}
-                        </text>
-                        <rect x={160} y={yPos} width={260} height={device.h} fill={device.color} fillOpacity={opacity} rx={0} className="transition-all duration-300" />
-                        
-                        {/* Draw Ports */}
-                        {(() => {
-                          let currentX = 160 + 15; // Start padding
-                          return device.portIcons.map((port, pIdx) => {
-                            const pWidth = getPortWidth(port);
-                            const element = (
-                              <g key={pIdx} className="transition-all duration-300">
-                                {renderPortIcon(port, currentX, yPos + device.h / 2, opacity)}
-                              </g>
-                            );
-                            currentX += pWidth + 6; // Add spacing between ports
-                            return element;
-                          });
-                        })()}
-
-                        <text x={435} y={yPos + device.h / 2} dominantBaseline="middle" fill={device.color} fillOpacity={opacity} fontSize={12} fontWeight="bold" fontFamily="monospace" className="transition-all duration-300">
-                          {device.h} mm
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              </div>
+          <RetroWindow title="/etc/devices.conf">
+            <div className="mb-3 flex justify-between items-center">
+              <span className="text-xs font-bold uppercase tracking-widest">Select Targets:</span>
+              <button 
+                onClick={() => setSelectedIds([])} 
+                className={`px-2 py-1 text-[10px] font-bold uppercase border-2 transition-colors ${
+                  isDark ? 'border-[#00ff00] hover:bg-[#00ff00] hover:text-black' : 'border-black hover:bg-black hover:text-white'
+                }`}
+              >
+                Clear Selection
+              </button>
             </div>
+            <div className={`p-2 space-y-1 max-h-[600px] overflow-y-auto border-2 ${borderColor} ${mutedBg}`}>
+              {filteredDatabase.map(device => {
+                const isSelected = selectedIds.includes(device.id);
+                return (
+                  <label 
+                    key={device.id}
+                    className={`flex items-center gap-3 p-2 cursor-pointer transition-colors border-2 ${
+                      isSelected 
+                        ? (isDark ? 'border-[#00ff00] bg-[#003300]' : 'border-black bg-[#a0a0a0]') 
+                        : 'border-transparent hover:border-dashed hover:border-current'
+                    }`}
+                    onMouseEnter={() => setHoveredId(device.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                  >
+                    <input type="checkbox" className="sr-only" checked={isSelected} onChange={() => toggleSelection(device.id)} />
+                    <div className={`w-4 h-4 border-2 flex items-center justify-center text-[10px] font-bold ${borderColor}`}>
+                      {isSelected ? 'X' : ' '}
+                    </div>
+                    <span className={`text-xs font-bold uppercase tracking-wide`}>
+                      {device.name} <span className="text-[10px] opacity-70 ml-1">[{device.type}]</span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </RetroWindow>
+        </div>
 
-            <div className="bg-white border-2 border-slate-900 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] overflow-hidden mt-8">
-              <div className="p-6 border-b-2 border-slate-900 bg-slate-100">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 uppercase tracking-widest">
-                  <Usb className="w-5 h-5 text-slate-900" strokeWidth={2.5} />
-                  Specifications
-                </h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left border-collapse">
-                  <thead className="text-slate-900 uppercase bg-slate-200 border-b-2 border-slate-900 tracking-widest">
-                    <tr>
-                      <th className="px-6 py-4 font-bold border-r-2 border-slate-900">Device</th>
-                      <th className="px-6 py-4 font-bold border-r-2 border-slate-900">Dimensions</th>
-                      <th className="px-6 py-4 font-bold">Ports</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y-2 divide-slate-900">
-                    {selectedDevices.map(device => (
-                      <tr key={`table-${device.id}`} className={`transition-colors ${hoveredId === device.id ? 'bg-slate-100' : 'hover:bg-slate-50'}`} onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
-                        <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-3 border-r-2 border-slate-900 uppercase">
-                          <div className="w-3 h-3 border border-slate-900" style={{ backgroundColor: device.color }} />
-                          {device.name}
-                        </td>
-                        <td className="px-6 py-4 text-slate-900 font-bold border-r-2 border-slate-900">{device.w} × {device.d} × {device.h} mm</td>
-                        <td className="px-6 py-4 text-slate-900 font-medium">{device.ports}</td>
-                      </tr>
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          {selectedDevices.length === 0 ? (
+            <div className={`h-64 flex items-center justify-center border-2 border-dashed ${borderColor} ${panelBg}`}>
+              <p className="font-bold uppercase tracking-widest animate-pulse">Awaiting Selection...</p>
+            </div>
+          ) : (
+            <>
+              <RetroWindow 
+                title="/usr/bin/footprint" 
+                action={
+                  <button onClick={exportSvg} className={`mr-2 px-2 py-0.5 text-[10px] font-bold uppercase border-2 ${isDark ? 'border-black bg-[#00ff00] text-black hover:bg-black hover:text-[#00ff00] hover:border-[#00ff00]' : 'border-white bg-[#dfdfdf] text-black hover:bg-black hover:text-white hover:border-black'} transition-colors`}>
+                    Export SVG
+                  </button>
+                }
+              >
+                <div className={`relative w-full aspect-[4/3] max-h-[600px] flex items-center justify-center border-2 ${borderColor} ${mutedBg} p-4 overflow-hidden`}>
+                  <svg id="footprint-svg" viewBox={`0 0 ${maxW + 300} ${Math.max(maxD + 40, selectedDevices.length * 25 + 60)}`} className="w-full h-full" style={{ maxHeight: '100%', maxWidth: '100%' }}>
+                    <defs>
+                      <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                        <path d="M 20 0 L 0 0 0 20" fill="none" stroke={gridColor} strokeWidth="1" strokeDasharray="2 2"/>
+                      </pattern>
+                      {selectedDevices.map(d => (
+                        <marker key={`arrow-${d.id}`} id={`arrow-${d.id}`} markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                          <path d="M 0 0 L 8 4 L 0 8 Z" fill={d.color} />
+                        </marker>
+                      ))}
+                    </defs>
+                    <rect width="100%" height="100%" fill={isDark ? '#000000' : '#c0c0c0'} />
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                    {selectedDevices.map((device, i) => {
+                      const isHovered = hoveredId === device.id;
+                      const opacity = hoveredId ? (isHovered ? 0.4 : 0.05) : 0.2;
+                      const strokeOpacity = hoveredId ? (isHovered ? 1 : 0.2) : 0.8;
+                      
+                      const xCorner = 20 + device.w;
+                      const yCorner = 20 + device.d;
+                      const labelY = 40 + i * 25;
+                      const labelX = maxW + 60;
+
+                      return (
+                        <g key={device.id} className="transition-all duration-300 ease-in-out" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
+                          <rect x={20} y={20} width={device.w} height={device.d} fill={device.color} fillOpacity={opacity} rx={0} className="transition-all duration-300" />
+                          <rect x={20} y={20} width={device.w} height={device.d} fill="none" stroke={device.color} strokeWidth={isHovered ? 3 : 1.5} strokeOpacity={strokeOpacity} rx={0} className="transition-all duration-300" />
+                          
+                          {/* CAD Leader Line */}
+                          <path 
+                            d={`M ${labelX} ${labelY} L ${xCorner + 20} ${labelY} L ${xCorner} ${yCorner}`}
+                            fill="none"
+                            stroke={device.color}
+                            strokeWidth="1.5"
+                            opacity={strokeOpacity}
+                            strokeDasharray="4 2"
+                            markerEnd={`url(#arrow-${device.id})`}
+                            className="transition-all duration-300"
+                          />
+                          
+                          {/* CAD Label */}
+                          <text 
+                            x={labelX + 5} 
+                            y={labelY + 4} 
+                            fill={device.color} 
+                            fontSize={11} 
+                            fontWeight="bold"
+                            fontFamily="monospace"
+                            opacity={strokeOpacity}
+                            className="uppercase tracking-wider transition-all duration-300"
+                          >
+                            {device.name} [{device.w}×{device.d}]
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+              </RetroWindow>
+
+              <RetroWindow title="/usr/bin/side_profile">
+                <div className={`relative w-full overflow-x-auto border-2 ${borderColor} ${mutedBg} p-6`}>
+                  <svg viewBox={`0 0 520 ${totalThicknessHeight}`} className="w-full min-w-[450px] h-auto">
+                    <defs>
+                      {selectedDevices.map(d => (
+                        <marker key={`thick-arrow-${d.id}`} id={`thick-arrow-${d.id}`} markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
+                          <path d="M 0 0 L 8 4 L 0 8 Z" fill={d.color} />
+                        </marker>
+                      ))}
+                    </defs>
+                    {selectedDevices.map((device, i) => {
+                      const yPos = 20 + i * thicknessSpacing;
+                      const isHovered = hoveredId === device.id;
+                      const opacity = hoveredId ? (isHovered ? 1 : 0.3) : 0.85;
+                      return (
+                        <g key={`thick-${device.id}`} className="transition-all duration-300 cursor-pointer" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
+                          <text x={0} y={yPos + device.h / 2} dominantBaseline="middle" fill={isHovered ? device.color : (isDark ? '#00aa00' : '#404040')} fontSize={11} fontWeight="bold" fontFamily="monospace" className="uppercase tracking-wider transition-colors duration-300">
+                            {device.name}
+                          </text>
+                          
+                          {/* CAD Leader Line for Thickness */}
+                          <line 
+                            x1={135} y1={yPos + device.h / 2} 
+                            x2={165} y2={yPos + device.h / 2} 
+                            stroke={device.color} 
+                            strokeWidth="1.5" 
+                            opacity={opacity}
+                            strokeDasharray="4 2"
+                            markerEnd={`url(#thick-arrow-${device.id})`}
+                            className="transition-all duration-300"
+                          />
+
+                          <rect x={175} y={yPos} width={260} height={device.h} fill={device.color} fillOpacity={opacity} rx={0} className="transition-all duration-300" />
+                          
+                          {/* Draw Ports */}
+                          {(() => {
+                            let currentX = 175 + 15; // Start padding
+                            return device.portIcons.map((port, pIdx) => {
+                              const pWidth = getPortWidth(port);
+                              const element = (
+                                <g key={pIdx} className="transition-all duration-300">
+                                  {/* Draw ports as black holes on the colored laptop body */}
+                                  {renderPortIcon(port, currentX, yPos + device.h / 2, false)}
+                                </g>
+                              );
+                              currentX += pWidth + 6; // Add spacing between ports
+                              return element;
+                            });
+                          })()}
+
+                          <text x={450} y={yPos + device.h / 2} dominantBaseline="middle" fill={device.color} fillOpacity={opacity} fontSize={12} fontWeight="bold" fontFamily="monospace" className="transition-all duration-300">
+                            {device.h} mm
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+
+                {/* Port Legend */}
+                <div className={`mt-6 p-4 border-2 ${borderColor} ${panelBg}`}>
+                  <h4 className={`text-xs font-bold uppercase mb-4 border-b-2 ${borderColor} pb-2`}>Port Legend</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-2">
+                    {Object.entries(PORT_NAMES).map(([key, name]) => (
+                      <div key={key} className="flex items-center gap-3">
+                        <svg width="24" height="12" viewBox="0 0 24 12" className="flex-shrink-0">
+                          {/* Draw legend ports using the theme's text color */}
+                          {renderPortIcon(key, 12 - getPortWidth(key)/2, 6, isDark)}
+                        </svg>
+                        <span className="text-[10px] sm:text-xs uppercase font-bold">{name}</span>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
+                  </div>
+                </div>
+              </RetroWindow>
+
+              <RetroWindow title="/var/log/specs.log">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead className={`uppercase ${mutedBg} border-b-2 ${borderColor} tracking-widest`}>
+                      <tr>
+                        <th className={`px-4 py-3 font-bold border-r-2 ${borderColor}`}>Device</th>
+                        <th className={`px-4 py-3 font-bold border-r-2 ${borderColor}`}>Dimensions</th>
+                        <th className="px-4 py-3 font-bold">Ports</th>
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y-2 ${isDark ? 'divide-[#00ff00]' : 'divide-black'}`}>
+                      {selectedDevices.map(device => (
+                        <tr key={`table-${device.id}`} className={`transition-colors ${hoveredId === device.id ? mutedBg : 'hover:opacity-80'}`} onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
+                          <td className={`px-4 py-3 font-bold flex items-center gap-3 border-r-2 ${borderColor} uppercase`}>
+                            <div className={`w-3 h-3 border-2 ${borderColor}`} style={{ backgroundColor: device.color }} />
+                            {device.name}
+                          </td>
+                          <td className={`px-4 py-3 font-bold border-r-2 ${borderColor}`}>{device.w} × {device.d} × {device.h} mm</td>
+                          <td className="px-4 py-3 font-medium">{device.ports}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </RetroWindow>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
