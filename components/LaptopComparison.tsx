@@ -88,16 +88,17 @@ export default function LaptopComparison() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [activeTypes, setActiveTypes] = useState<string[]>([]);
   const [isDark, setIsDark] = useState<boolean>(false); // Default to Light mode (Unix X11 vibe)
+  const [showGrid, setShowGrid] = useState<boolean>(true);
 
   // Theme variables
   const themeBg = isDark ? 'bg-black' : 'bg-[#a0a0a0]';
   const panelBg = isDark ? 'bg-black' : 'bg-[#dfdfdf]';
-  const borderColor = isDark ? 'border-[#00ff00]' : 'border-black';
-  const textColor = isDark ? 'text-[#00ff00]' : 'text-black';
-  const titleBg = isDark ? 'bg-[#00ff00] text-black' : 'bg-black text-white';
-  const shadow = isDark ? 'shadow-[4px_4px_0px_0px_#00ff00]' : 'shadow-[4px_4px_0px_0px_#000000]';
-  const gridColor = isDark ? '#003300' : '#999999';
-  const mutedBg = isDark ? 'bg-[#001100]' : 'bg-[#cccccc]';
+  const borderColor = isDark ? 'border-[#4ade80]' : 'border-black';
+  const textColor = isDark ? 'text-[#4ade80]' : 'text-black';
+  const titleBg = isDark ? 'bg-[#4ade80] text-black' : 'bg-black text-white';
+  const shadow = isDark ? 'shadow-[4px_4px_0px_0px_#4ade80]' : 'shadow-[4px_4px_0px_0px_#000000]';
+  const gridColor = isDark ? '#14532d' : '#999999';
+  const mutedBg = isDark ? 'bg-[#052e16]' : 'bg-[#cccccc]';
 
   const toggleSelection = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -122,8 +123,8 @@ export default function LaptopComparison() {
   const thicknessSpacing = 40;
   const totalThicknessHeight = selectedDevices.length * thicknessSpacing + 20;
 
-  const exportSvg = () => {
-    const svg = document.getElementById('footprint-svg');
+  const exportSvg = (svgId: string, filename: string) => {
+    const svg = document.getElementById(svgId);
     if (!svg) return;
     const serializer = new XMLSerializer();
     let source = serializer.serializeToString(svg);
@@ -134,7 +135,7 @@ export default function LaptopComparison() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'device-footprint.svg';
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -146,7 +147,7 @@ export default function LaptopComparison() {
         <span className="font-bold tracking-widest text-sm uppercase">{title}</span>
         <div className="flex gap-2 items-center">
           {action}
-          <div className={`w-4 h-4 border-2 ${isDark ? 'border-black bg-[#00ff00]' : 'border-white bg-black text-white'} flex items-center justify-center text-[10px] font-bold cursor-pointer`}>■</div>
+          <div className={`w-4 h-4 border-2 ${isDark ? 'border-black bg-[#4ade80]' : 'border-white bg-black text-white'} flex items-center justify-center text-[10px] font-bold cursor-pointer`}>■</div>
         </div>
       </div>
       <div className={`p-4 ${textColor}`}>
@@ -160,14 +161,15 @@ export default function LaptopComparison() {
       {/* Top Menu Bar */}
       <div className={`border-b-2 px-4 py-1 flex justify-between items-center ${panelBg} ${borderColor} ${textColor}`}>
         <div className="flex gap-6 text-sm font-bold uppercase tracking-widest">
-          <span className="cursor-pointer hover:underline">Host</span>
-          <span className="cursor-pointer hover:underline">Display</span>
-          <span className="cursor-pointer hover:underline">Config</span>
+          <button onClick={() => setShowGrid(!showGrid)} className="cursor-pointer hover:underline">Toggle Grid</button>
+          <button onClick={() => setSelectedIds([])} className="cursor-pointer hover:underline">Clear Selection</button>
+          <button onClick={() => exportSvg('footprint-svg', 'footprint.svg')} className="cursor-pointer hover:underline">Export Footprint</button>
+          <button onClick={() => exportSvg('profile-svg', 'profile.svg')} className="cursor-pointer hover:underline">Export Profile</button>
         </div>
         <button 
           onClick={() => setIsDark(!isDark)} 
           className={`px-3 py-0.5 border-2 text-xs font-bold uppercase tracking-widest transition-colors ${
-            isDark ? 'border-[#00ff00] hover:bg-[#00ff00] hover:text-black' : 'border-black hover:bg-black hover:text-white'
+            isDark ? 'border-[#4ade80] hover:bg-[#4ade80] hover:text-black' : 'border-black hover:bg-black hover:text-white'
           }`}
         >
           {isDark ? 'xsetroot -solid gray' : 'xsetroot -solid black'}
@@ -188,7 +190,7 @@ export default function LaptopComparison() {
                     onClick={() => toggleType(type)}
                     className={`px-2 py-1.5 text-xs font-bold uppercase border-2 transition-colors ${
                       isActive 
-                        ? (isDark ? 'bg-[#00ff00] text-black border-[#00ff00]' : 'bg-black text-white border-black')
+                        ? (isDark ? 'bg-[#4ade80] text-black border-[#4ade80]' : 'bg-black text-white border-black')
                         : `bg-transparent ${borderColor} hover:${mutedBg}`
                     }`}
                   >
@@ -205,7 +207,7 @@ export default function LaptopComparison() {
               <button 
                 onClick={() => setSelectedIds([])} 
                 className={`px-2 py-1 text-[10px] font-bold uppercase border-2 transition-colors ${
-                  isDark ? 'border-[#00ff00] hover:bg-[#00ff00] hover:text-black' : 'border-black hover:bg-black hover:text-white'
+                  isDark ? 'border-[#4ade80] hover:bg-[#4ade80] hover:text-black' : 'border-black hover:bg-black hover:text-white'
                 }`}
               >
                 Clear Selection
@@ -214,14 +216,15 @@ export default function LaptopComparison() {
             <div className={`p-2 space-y-1 max-h-[600px] overflow-y-auto border-2 ${borderColor} ${mutedBg}`}>
               {filteredDatabase.map(device => {
                 const isSelected = selectedIds.includes(device.id);
+                const isHovered = hoveredId === device.id;
                 return (
                   <label 
                     key={device.id}
                     className={`flex items-center gap-3 p-2 cursor-pointer transition-colors border-2 ${
                       isSelected 
-                        ? (isDark ? 'border-[#00ff00] bg-[#003300]' : 'border-black bg-[#a0a0a0]') 
+                        ? (isDark ? 'border-[#4ade80] bg-[#14532d]' : 'border-black bg-[#a0a0a0]') 
                         : 'border-transparent hover:border-dashed hover:border-current'
-                    }`}
+                    } ${isHovered ? (isDark ? 'bg-[#14532d]/50' : 'bg-black/10') : ''}`}
                     onMouseEnter={() => setHoveredId(device.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
@@ -247,17 +250,17 @@ export default function LaptopComparison() {
             </div>
           ) : (
             <>
-              <RetroWindow 
-                title="/usr/bin/footprint" 
-                action={
-                  <button onClick={exportSvg} className={`mr-2 px-2 py-0.5 text-[10px] font-bold uppercase border-2 ${isDark ? 'border-black bg-[#00ff00] text-black hover:bg-black hover:text-[#00ff00] hover:border-[#00ff00]' : 'border-white bg-[#dfdfdf] text-black hover:bg-black hover:text-white hover:border-black'} transition-colors`}>
-                    Export SVG
-                  </button>
-                }
-              >
+              <RetroWindow title="/usr/bin/footprint">
                 <div className={`relative w-full aspect-[4/3] max-h-[600px] flex items-center justify-center border-2 ${borderColor} ${mutedBg} p-4 overflow-hidden`}>
                   <svg id="footprint-svg" viewBox={`0 0 ${maxW + 300} ${Math.max(maxD + 40, selectedDevices.length * 25 + 60)}`} className="w-full h-full" style={{ maxHeight: '100%', maxWidth: '100%' }}>
                     <defs>
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                          <feMergeNode in="coloredBlur"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
                       <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
                         <path d="M 20 0 L 0 0 0 20" fill="none" stroke={gridColor} strokeWidth="1" strokeDasharray="2 2"/>
                       </pattern>
@@ -268,7 +271,7 @@ export default function LaptopComparison() {
                       ))}
                     </defs>
                     <rect width="100%" height="100%" fill={isDark ? '#000000' : '#c0c0c0'} />
-                    <rect width="100%" height="100%" fill="url(#grid)" />
+                    {showGrid && <rect width="100%" height="100%" fill="url(#grid)" />}
                     {selectedDevices.map((device, i) => {
                       const isHovered = hoveredId === device.id;
                       const opacity = hoveredId ? (isHovered ? 0.4 : 0.05) : 0.2;
@@ -280,9 +283,9 @@ export default function LaptopComparison() {
                       const labelX = maxW + 60;
 
                       return (
-                        <g key={device.id} className="transition-all duration-300 ease-in-out" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
+                        <g key={device.id} className="transition-all duration-300 ease-in-out cursor-pointer" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
                           <rect x={20} y={20} width={device.w} height={device.d} fill={device.color} fillOpacity={opacity} rx={0} className="transition-all duration-300" />
-                          <rect x={20} y={20} width={device.w} height={device.d} fill="none" stroke={device.color} strokeWidth={isHovered ? 3 : 1.5} strokeOpacity={strokeOpacity} rx={0} className="transition-all duration-300" />
+                          <rect x={20} y={20} width={device.w} height={device.d} fill="none" stroke={device.color} strokeWidth={isHovered ? 3 : 1.5} strokeOpacity={strokeOpacity} rx={0} className="transition-all duration-300" filter={isHovered ? "url(#glow)" : undefined} />
                           
                           {/* CAD Leader Line */}
                           <path 
@@ -318,8 +321,15 @@ export default function LaptopComparison() {
 
               <RetroWindow title="/usr/bin/side_profile">
                 <div className={`relative w-full overflow-x-auto border-2 ${borderColor} ${mutedBg} p-6`}>
-                  <svg viewBox={`0 0 520 ${totalThicknessHeight}`} className="w-full min-w-[450px] h-auto">
+                  <svg id="profile-svg" viewBox={`0 0 520 ${totalThicknessHeight}`} className="w-full min-w-[450px] h-auto">
                     <defs>
+                      <filter id="glow-profile" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                        <feMerge>
+                          <feMergeNode in="coloredBlur"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
                       {selectedDevices.map(d => (
                         <marker key={`thick-arrow-${d.id}`} id={`thick-arrow-${d.id}`} markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto">
                           <path d="M 0 0 L 8 4 L 0 8 Z" fill={d.color} />
@@ -332,7 +342,7 @@ export default function LaptopComparison() {
                       const opacity = hoveredId ? (isHovered ? 1 : 0.3) : 0.85;
                       return (
                         <g key={`thick-${device.id}`} className="transition-all duration-300 cursor-pointer" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
-                          <text x={0} y={yPos + device.h / 2} dominantBaseline="middle" fill={isHovered ? device.color : (isDark ? '#00aa00' : '#404040')} fontSize={11} fontWeight="bold" fontFamily="monospace" className="uppercase tracking-wider transition-colors duration-300">
+                          <text x={0} y={yPos + device.h / 2} dominantBaseline="middle" fill={isHovered ? device.color : (isDark ? '#4ade80' : '#404040')} fontSize={11} fontWeight="bold" fontFamily="monospace" className="uppercase tracking-wider transition-colors duration-300">
                             {device.name}
                           </text>
                           
@@ -341,14 +351,14 @@ export default function LaptopComparison() {
                             x1={135} y1={yPos + device.h / 2} 
                             x2={165} y2={yPos + device.h / 2} 
                             stroke={device.color} 
-                            strokeWidth="1.5" 
+                            strokeWidth={isHovered ? 2.5 : 1.5} 
                             opacity={opacity}
                             strokeDasharray="4 2"
                             markerEnd={`url(#thick-arrow-${device.id})`}
                             className="transition-all duration-300"
                           />
 
-                          <rect x={175} y={yPos} width={260} height={device.h} fill={device.color} fillOpacity={opacity} rx={0} className="transition-all duration-300" />
+                          <rect x={175} y={yPos} width={260} height={device.h} fill={device.color} fillOpacity={opacity} rx={0} className="transition-all duration-300" filter={isHovered ? "url(#glow-profile)" : undefined} />
                           
                           {/* Draw Ports */}
                           {(() => {
