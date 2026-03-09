@@ -21,6 +21,8 @@ const DATABASE = [
   { id: "rm2", type: "E-Reader", name: "reMarkable 2", w: 188.0, d: 246.0, h: 4.7, color: "#64748b", ports: "1x USB-C", portIcons: ['C'] },
   { id: "steamdeck", type: "Handheld", name: "Steam Deck OLED", w: 298.0, d: 117.0, h: 49.0, color: "#f43f5e", ports: "1x USB-C, Audio", portIcons: ['C', 'J'] },
   { id: "switch", type: "Handheld", name: "Switch OLED", w: 242.0, d: 102.0, h: 13.9, color: "#ef4444", ports: "1x USB-C, Audio", portIcons: ['C', 'J'] },
+  { id: "bq501", type: "PC Case", name: "be quiet! Pure Base 501", w: 231, d: 450, h: 463, color: "#94a3b8", ports: "1x USB-C, 2x USB-A, Audio", portIcons: ['C', 'A', 'A', 'J'] },
+  { id: "jonsboz20", type: "PC Case", name: "Jonsbo Z20", w: 186, d: 370, h: 295, color: "#fbbf24", ports: "1x USB-C, 1x USB-A, Audio", portIcons: ['C', 'A', 'J'] },
 ];
 
 const DEVICE_TYPES = Array.from(new Set(DATABASE.map(d => d.type)));
@@ -83,6 +85,41 @@ const renderPortIcon = (portType: string, x: number, yCenter: number, isDark: bo
   }
 };
 
+const RetroWindow = ({ 
+  title, 
+  children, 
+  action = null, 
+  borderColor, 
+  panelBg, 
+  shadow, 
+  titleBg, 
+  isDark, 
+  textColor 
+}: { 
+  title: string, 
+  children: React.ReactNode, 
+  action?: React.ReactNode,
+  borderColor: string,
+  panelBg: string,
+  shadow: string,
+  titleBg: string,
+  isDark: boolean,
+  textColor: string
+}) => (
+  <div className={`border-2 ${borderColor} ${panelBg} ${shadow} flex flex-col mb-8`}>
+    <div className={`px-2 py-1 border-b-2 ${borderColor} ${titleBg} flex justify-between items-center`}>
+      <span className="font-bold tracking-widest text-sm uppercase">{title}</span>
+      <div className="flex gap-2 items-center">
+        {action}
+        <div className={`w-4 h-4 border-2 ${isDark ? 'border-black bg-[#4ade80]' : 'border-white bg-black text-white'} flex items-center justify-center text-[10px] font-bold cursor-pointer`}>■</div>
+      </div>
+    </div>
+    <div className={`p-4 ${textColor}`}>
+      {children}
+    </div>
+  </div>
+);
+
 export default function LaptopComparison() {
   const [selectedIds, setSelectedIds] = useState<string[]>(["t14", "m2air", "ip15p"]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -120,8 +157,16 @@ export default function LaptopComparison() {
 
   const maxW = Math.max(...selectedDevices.map(l => l.w), 320);
   const maxD = Math.max(...selectedDevices.map(l => l.d), 240);
-  const thicknessSpacing = 40;
-  const totalThicknessHeight = selectedDevices.length * thicknessSpacing + 20;
+  
+  const thicknessGap = 30;
+  const profileData = useMemo(() => {
+    return selectedDevices.map((device, index) => {
+      const previousHeight = selectedDevices.slice(0, index).reduce((sum, d) => sum + d.h + thicknessGap, 0);
+      return { ...device, yPos: 20 + previousHeight };
+    });
+  }, [selectedDevices]);
+
+  const totalThicknessHeight = profileData.length > 0 ? profileData[profileData.length - 1].yPos + profileData[profileData.length - 1].h + 20 : 100;
 
   const exportSvg = (svgId: string, filename: string) => {
     const svg = document.getElementById(svgId);
@@ -140,21 +185,6 @@ export default function LaptopComparison() {
     link.click();
     document.body.removeChild(link);
   };
-
-  const RetroWindow = ({ title, children, action = null }: { title: string, children: React.ReactNode, action?: React.ReactNode }) => (
-    <div className={`border-2 ${borderColor} ${panelBg} ${shadow} flex flex-col mb-8`}>
-      <div className={`px-2 py-1 border-b-2 ${borderColor} ${titleBg} flex justify-between items-center`}>
-        <span className="font-bold tracking-widest text-sm uppercase">{title}</span>
-        <div className="flex gap-2 items-center">
-          {action}
-          <div className={`w-4 h-4 border-2 ${isDark ? 'border-black bg-[#4ade80]' : 'border-white bg-black text-white'} flex items-center justify-center text-[10px] font-bold cursor-pointer`}>■</div>
-        </div>
-      </div>
-      <div className={`p-4 ${textColor}`}>
-        {children}
-      </div>
-    </div>
-  );
 
   return (
     <div className={`min-h-screen font-mono transition-colors duration-300 ${themeBg} ${textColor} pb-12`}>
@@ -180,7 +210,15 @@ export default function LaptopComparison() {
         
         {/* Left Sidebar */}
         <div className="w-full lg:w-[400px] flex-shrink-0">
-          <RetroWindow title="/etc/filters.conf">
+          <RetroWindow 
+            title="/etc/filters.conf"
+            borderColor={borderColor}
+            panelBg={panelBg}
+            shadow={shadow}
+            titleBg={titleBg}
+            isDark={isDark}
+            textColor={textColor}
+          >
             <div className="grid grid-cols-2 gap-2">
               {DEVICE_TYPES.map(type => {
                 const isActive = activeTypes.includes(type);
@@ -201,7 +239,15 @@ export default function LaptopComparison() {
             </div>
           </RetroWindow>
 
-          <RetroWindow title="/etc/devices.conf">
+          <RetroWindow 
+            title="/etc/devices.conf"
+            borderColor={borderColor}
+            panelBg={panelBg}
+            shadow={shadow}
+            titleBg={titleBg}
+            isDark={isDark}
+            textColor={textColor}
+          >
             <div className="mb-3 flex justify-between items-center">
               <span className="text-xs font-bold uppercase tracking-widest">Select Targets:</span>
               <button 
@@ -250,7 +296,15 @@ export default function LaptopComparison() {
             </div>
           ) : (
             <>
-              <RetroWindow title="/usr/bin/footprint">
+              <RetroWindow 
+                title="/usr/bin/footprint"
+                borderColor={borderColor}
+                panelBg={panelBg}
+                shadow={shadow}
+                titleBg={titleBg}
+                isDark={isDark}
+                textColor={textColor}
+              >
                 <div className={`relative w-full aspect-[4/3] max-h-[600px] flex items-center justify-center border-2 ${borderColor} ${mutedBg} p-4 overflow-hidden`}>
                   <svg id="footprint-svg" viewBox={`0 0 ${maxW + 300} ${Math.max(maxD + 40, selectedDevices.length * 25 + 60)}`} className="w-full h-full" style={{ maxHeight: '100%', maxWidth: '100%' }}>
                     <defs>
@@ -319,7 +373,15 @@ export default function LaptopComparison() {
                 </div>
               </RetroWindow>
 
-              <RetroWindow title="/usr/bin/side_profile">
+              <RetroWindow 
+                title="/usr/bin/side_profile"
+                borderColor={borderColor}
+                panelBg={panelBg}
+                shadow={shadow}
+                titleBg={titleBg}
+                isDark={isDark}
+                textColor={textColor}
+              >
                 <div className={`relative w-full overflow-x-auto border-2 ${borderColor} ${mutedBg} p-6`}>
                   <svg id="profile-svg" viewBox={`0 0 520 ${totalThicknessHeight}`} className="w-full min-w-[450px] h-auto">
                     <defs>
@@ -336,20 +398,20 @@ export default function LaptopComparison() {
                         </marker>
                       ))}
                     </defs>
-                    {selectedDevices.map((device, i) => {
-                      const yPos = 20 + i * thicknessSpacing;
+                    {profileData.map((device) => {
+                      const yPos = device.yPos;
                       const isHovered = hoveredId === device.id;
                       const opacity = hoveredId ? (isHovered ? 1 : 0.3) : 0.85;
                       return (
                         <g key={`thick-${device.id}`} className="transition-all duration-300 cursor-pointer" onMouseEnter={() => setHoveredId(device.id)} onMouseLeave={() => setHoveredId(null)}>
-                          <text x={0} y={yPos + device.h / 2} dominantBaseline="middle" fill={isHovered ? device.color : (isDark ? '#4ade80' : '#404040')} fontSize={11} fontWeight="bold" fontFamily="monospace" className="uppercase tracking-wider transition-colors duration-300">
+                          <text x={0} y={yPos + Math.min(device.h / 2, 15)} dominantBaseline="middle" fill={isHovered ? device.color : (isDark ? '#4ade80' : '#404040')} fontSize={11} fontWeight="bold" fontFamily="monospace" className="uppercase tracking-wider transition-colors duration-300">
                             {device.name}
                           </text>
                           
                           {/* CAD Leader Line for Thickness */}
                           <line 
-                            x1={135} y1={yPos + device.h / 2} 
-                            x2={165} y2={yPos + device.h / 2} 
+                            x1={135} y1={yPos + Math.min(device.h / 2, 15)} 
+                            x2={165} y2={yPos + Math.min(device.h / 2, 15)} 
                             stroke={device.color} 
                             strokeWidth={isHovered ? 2.5 : 1.5} 
                             opacity={opacity}
@@ -363,20 +425,22 @@ export default function LaptopComparison() {
                           {/* Draw Ports */}
                           {(() => {
                             let currentX = 175 + 15; // Start padding
+                            // For very tall devices (PC cases), we draw ports at the top
+                            const portY = device.h > 40 ? yPos + 15 : yPos + device.h / 2;
                             return device.portIcons.map((port, pIdx) => {
                               const pWidth = getPortWidth(port);
                               const element = (
                                 <g key={pIdx} className="transition-all duration-300">
                                   {/* Draw ports as black holes on the colored laptop body */}
-                                  {renderPortIcon(port, currentX, yPos + device.h / 2, false)}
+                                  {renderPortIcon(port, currentX, portY, isDark)}
                                 </g>
                               );
-                              currentX += pWidth + 6; // Add spacing between ports
+                              currentX += pWidth + 8; // spacing between ports
                               return element;
                             });
                           })()}
 
-                          <text x={450} y={yPos + device.h / 2} dominantBaseline="middle" fill={device.color} fillOpacity={opacity} fontSize={12} fontWeight="bold" fontFamily="monospace" className="transition-all duration-300">
+                          <text x={450} y={yPos + Math.min(device.h / 2, 15)} dominantBaseline="middle" fill={device.color} fillOpacity={opacity} fontSize={12} fontWeight="bold" fontFamily="monospace" className="transition-all duration-300">
                             {device.h} mm
                           </text>
                         </g>
@@ -402,7 +466,15 @@ export default function LaptopComparison() {
                 </div>
               </RetroWindow>
 
-              <RetroWindow title="/var/log/specs.log">
+              <RetroWindow 
+                title="/var/log/specs.log"
+                borderColor={borderColor}
+                panelBg={panelBg}
+                shadow={shadow}
+                titleBg={titleBg}
+                isDark={isDark}
+                textColor={textColor}
+              >
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left border-collapse">
                     <thead className={`uppercase ${mutedBg} border-b-2 ${borderColor} tracking-widest`}>
